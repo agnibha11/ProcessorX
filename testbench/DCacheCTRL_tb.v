@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 //====================================================
-// Project     : RV32IM 5 Stage Pipelined Processor
+// Project     : RV32IM 6-Stage Pipelined Processor
 // Testbench    : dcache_ctrl_tb
 //
 // Self-checking TB for the write-back / write-allocate D-cache

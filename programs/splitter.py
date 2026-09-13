@@ -1,5 +1,5 @@
 #====================================================
-# Project     : RV32IM 5 Stage Pipelined Processor
+# Project     : RV32IM 6-Stage Pipelined Processor
 # Author      : Agnibha Sarkar
 #
 # Revision    : v1.0

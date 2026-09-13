@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 //====================================================
-// Project     : RV32IM 5 Stage Pipelined Processor
+// Project     : RV32IM 6-Stage Pipelined Processor
 // Testbench    : dmem_tb  (block data memory behind the D-cache)
 //
 // Verifies the 8 KB block DMEM:
