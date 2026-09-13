@@ -1,0 +1,219 @@
+# ============================================================
+# dcache_exercise.s  --  RV32IM  (L1 DATA CACHE workout)
+#
+# D-cache: 1 KB, 32-byte blocks (8 words), 32 lines, direct-mapped,
+#          write-back + write-allocate.
+#   addr:  [12:10] tag | [9:5] index | [4:2] word | [1:0] byte
+#
+# Conflict set (same index 2, different tag) used to force dirty
+# eviction + write-back:
+#   A = 0x040  (index 2, tag 0)
+#   B = 0x440  (index 2, tag 1)
+#   C = 0x840  (index 2, tag 2)
+#
+# The comment on each load/store states the intended cache event:
+#   MISS(clean) / MISS(dirty-evict) / HIT.
+# No I-cache stress here (straight-ish code) -- this isolates the D-cache.
+# ============================================================
+
+# ---------------- address registers ----------------
+        addi  x10, x0, 0x040        # A  : index 2, tag 0
+        addi  x11, x0, 0x440        # B  : index 2, tag 1  (1088, fits imm)
+        lui   x12, 0x1              # 0x1000
+        addi  x12, x12, -1984       # C  : index 2, tag 2  (0x840 = 2112)
+        addi  x14, x0, 0x100        # D  : index 8, tag 0  (256)
+        addi  x15, x0, 0x080        # E  : index 4, tag 0  (128)
+
+# ---------------- value registers ----------------
+        addi  x5, x0, 0x11
+        addi  x6, x0, 0x22
+        addi  x7, x0, 0x33
+        addi  x8, x0, 0x44
+        addi  x9, x0, 0x55
+
+# ===== Phase 0: pure CLEAN read miss + spatial read hits =====
+# E was never written -> clean fill, never becomes dirty.
+        lw    x20, 0(x15)           # MISS(clean)  -> 0
+        lw    x21, 4(x15)           # HIT          -> 0
+        lw    x22, 28(x15)          # HIT          -> 0
+
+# ===== Phase 1: cold WRITE miss + spatial write hits (fills a block) =====
+        sw    x5, 0(x10)            # MISS(clean) allocate A, merge, dirty
+        sw    x6, 4(x10)            # HIT (dirty)
+        sw    x7, 8(x10)            # HIT
+        sw    x8, 12(x10)           # HIT
+        sw    x9, 16(x10)           # HIT
+        sw    x5, 20(x10)           # HIT
+        sw    x6, 24(x10)           # HIT
+        sw    x7, 28(x10)           # HIT  (A = 11,22,33,44,55,11,22,33)
+
+# ===== Phase 2: read hits from the dirty block A =====
+        lw    x23, 0(x10)           # HIT -> 0x11
+        lw    x24, 4(x10)           # HIT -> 0x22
+        lw    x25, 16(x10)          # HIT -> 0x55
+        lw    x26, 28(x10)          # HIT -> 0x33
+
+# ===== Phase 3: a different index -> no eviction (both fit) =====
+        sw    x8, 0(x14)            # MISS(clean) allocate D, dirty
+        sw    x9, 4(x14)            # HIT
+        lw    x27, 0(x14)           # HIT -> 0x44
+        lw    x28, 4(x14)           # HIT -> 0x55
+
+# ===== Phase 4: DIRTY EVICTION ping-pong (write-back correctness) =====
+# A is dirty. Touching B/C (same index) must write A back to DRAM, and
+# coming back to A must refill the written-back data intact.
+        sw    x9, 0(x11)            # MISS(dirty-evict A) allocate B, dirty
+        sw    x8, 4(x11)            # HIT on B
+        lw    x29, 0(x10)           # MISS(dirty-evict B) refill A -> 0x11  <== write-back proof
+        lw    x30, 4(x10)           # HIT on A -> 0x22
+        sw    x5, 0(x11)            # MISS(dirty-evict A) allocate B, dirty
+        lw    x31, 0(x11)           # HIT on B -> 0x11
+        lw    x20, 0(x10)           # MISS(dirty-evict B) refill A -> 0x11
+        sw    x6, 0(x12)            # MISS(dirty-evict A) allocate C, dirty
+        lw    x21, 0(x12)           # HIT on C -> 0x22
+        lw    x22, 0(x11)           # MISS(dirty-evict C) refill B -> 0x11
+
+# ===== Phase 5: sub-word stores/loads (byte + halfword select) =====
+# Work inside block D (index 8, still cached) -> all HITs; exercises the
+# read-modify-write merge and the load extract/extend paths.
+        addi  x5, x0, 0xAB
+        sb    x5, 8(x14)           # HIT  store byte @ D+8  (byte offset 0)
+        addi  x6, x0, 0xCD
+        sb    x6, 9(x14)           # HIT  @ D+9  (byte offset 1)
+        addi  x7, x0, 0x12
+        sb    x7, 10(x14)          # HIT  @ D+10 (byte offset 2)
+        addi  x8, x0, 0x34
+        sb    x8, 11(x14)          # HIT  @ D+11 (byte offset 3)  word=0x3412CDAB
+        lw    x23, 8(x14)          # HIT -> 0x3412CDAB
+        lb    x24, 8(x14)          # HIT LB  -> 0xFFFFFFAB (sign extend)
+        lbu   x25, 8(x14)          # HIT LBU -> 0x000000AB
+        lb    x26, 11(x14)         # HIT LB  -> 0x00000034
+        lh    x27, 8(x14)          # HIT LH  -> 0xFFFFCDAB (halfword 0, sign)
+        lhu   x28, 8(x14)          # HIT LHU -> 0x0000CDAB
+        lh    x29, 10(x14)         # HIT LH  -> 0x00003412 (halfword 1)
+        addi  x9, x0, 0x7E
+        slli  x9, x9, 8
+        ori   x9, x9, 0x0F         # x9 = 0x00007E0F
+        sh    x9, 12(x14)          # HIT store halfword @ D+12
+        lhu   x30, 12(x14)         # HIT -> 0x00007E0F
+        lh    x31, 12(x14)         # HIT -> 0x00007E0F
+
+# ===== Phase 6: streaming store-then-sum loops (spatial locality) =====
+# 16 words = 64 bytes = 2 blocks at 0x200 (index 16). Store loop then
+# sum loop -> misses only at the two block starts, everything else hits.
+        addi  x13, x0, 0x200        # array base (index 16, tag 0)
+        addi  x5,  x0, 0            # i = 0
+        addi  x18, x0, 16           # word count
+fill_loop:
+        slli  x6, x5, 2
+        add   x7, x13, x6           # &array[i]
+        add   x8, x5, x5            # value = 2*i
+        sw    x8, 0(x7)             # store: MISS at i=0,8 ; HIT otherwise
+        addi  x5, x5, 1
+        blt   x5, x18, fill_loop
+
+        addi  x5,  x0, 0            # i = 0
+        addi  x19, x0, 0            # sum
+sum_loop:
+        slli  x6, x5, 2
+        add   x7, x13, x6
+        lw    x9, 0(x7)             # load: HIT (array still cached)
+        add   x19, x19, x9
+        addi  x5, x5, 1
+        blt   x5, x18, sum_loop     # x19 = 2*(0+1+..+15) = 240
+
+# ===== Phase 7: strided access to force repeated conflict misses =====
+# Touch A, B, C, A, B, C ... (all index 2) -> every access is a
+# dirty-evict miss. Great stress for the EVICT->REFILL path.
+        addi  x5, x0, 0             # counter
+        addi  x18, x0, 6            # 6 iterations
+strided:
+        sw    x5, 0(x10)            # A : MISS(dirty-evict)
+        sw    x5, 0(x11)            # B : MISS(dirty-evict A)
+        sw    x5, 0(x12)            # C : MISS(dirty-evict B)
+        addi  x5, x5, 1
+        blt   x5, x18, strided
+
+# read the final survivors back (write-back must have preserved them)
+        lw    x20, 0(x10)           # MISS(dirty-evict) refill A -> 5
+        lw    x21, 0(x11)           # MISS(dirty-evict) refill B -> 5
+        lw    x22, 0(x12)           # MISS(dirty-evict) refill C -> 5
+
+# ===== done =====
+        addi  x2, x0, 1
+done_d:
+        beq   x0, x0, done_d        # spin forever
+
+# ============================================================
+# MEMORY-READBACK EPILOGUE
+# Register file is what you dump, so pull final memory state into
+# registers. Where a line was evicted before the readback, a correct
+# value PROVES the write-back to DRAM (marked DRAM-PROOF); otherwise it
+# is served from the cache (marked cache).
+#
+# To make several readbacks DRAM-PROOF, we first FLUSH index 2 and the
+# array/base lines out of the cache by touching conflicting tags, then
+# read the originals back (forcing a DRAM refill).
+#
+# Final register map (all readbacks land in x24..x31, x2 kept as marker):
+#   x24 = A[0]   x25 = B[0]   x26 = C[0]      (index-2 survivors, DRAM-PROOF)
+#   x27 = D[2]   (sub-word merged word 0x3412CDAB, cache or DRAM)
+#   x28 = array[15]  x29 = array sum (recompute)  (spatial region)
+#   x30 = base0[3]   x31 = base0[7]              (countdown-region, below)
+# ============================================================
+
+# --- first, create some base-0 region data so we can read it back ---
+        addi  x13, x0, 0x000        # base region (index 0, tag 0)
+        addi  x5,  x0, 0
+        addi  x18, x0, 8            # 8 words = 1 block
+base_fill:
+        slli  x6, x5, 2
+        add   x7, x13, x6
+        addi  x8, x5, 0x60         # value = 0x60 + i
+        sw    x8, 0(x7)            # MISS at i=0, HIT after
+        addi  x5, x5, 1
+        blt   x5, x18, base_fill
+
+# --- FLUSH index 2 to DRAM: A,B,C are dirty; walk all 8 tags of index 2
+#     so whatever is resident gets written back and index 2 ends holding
+#     a scratch tag, guaranteeing the A/B/C readbacks miss -> DRAM refill ---
+        lui   x16, 0x1              # index 2, tag 3 scratch (0xC40 = 3136)
+        addi  x16, x16, -960       # 4096 - 960 = 3136
+        lui   x17, 0x1
+        addi  x17, x17, 0x040       # 0x1040 index 2, tag 4 (4160) scratch
+        sw    x0, 0(x16)            # MISS(dirty-evict) : flushes a survivor
+        sw    x0, 0(x17)            # MISS(dirty-evict) : flushes another
+        lw    x16, 0(x16)           # keep them resident briefly (scratch)
+        lw    x17, 0(x17)
+
+# --- DRAM-PROOF readbacks of the index-2 survivors (must refill from DRAM) ---
+        lw    x24, 0(x10)           # A[0] : MISS -> refill from DRAM (DRAM-PROOF) = 5
+        lw    x25, 0(x11)           # B[0] : MISS(dirty-evict A) -> DRAM      = 5
+        lw    x26, 0(x12)           # C[0] : MISS(dirty-evict B) -> DRAM      = 5
+
+# --- sub-word merged word in D (may be cache or DRAM depending on eviction) ---
+        lw    x27, 8(x14)           # D[word2] -> 0x3412CDAB
+
+# --- spatial array region readback ---
+        addi  x13, x0, 0x200
+        lw    x28, 60(x13)          # array[15] -> 30 (=2*15)
+        addi  x5, x0, 0
+        addi  x18, x0, 16
+        addi  x29, x0, 0
+epi_sum:
+        slli  x6, x5, 2
+        add   x7, x13, x6
+        lw    x9, 0(x7)
+        add   x29, x29, x9
+        addi  x5, x5, 1
+        blt   x5, x18, epi_sum      # x29 = 240
+
+# --- base-0 region readback ---
+        addi  x13, x0, 0x000
+        lw    x30, 12(x13)          # base0[3] -> 0x63
+        lw    x31, 28(x13)          # base0[7] -> 0x67
+
+# ===== truly done =====
+        addi  x2, x0, 2             # marker: reached readback epilogue
+end_d_final:
+        beq   x0, x0, end_d_final   # spin forever

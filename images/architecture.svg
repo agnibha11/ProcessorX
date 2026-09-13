@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1740 780" width="1740" height="780" font-family="Helvetica, Arial, sans-serif">
+
+  <defs>
+    <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#000000"/>
+    </marker>
+    <marker id="arwS" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#000000"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1740" height="780" fill="#FFFFFF"/>
+
+  <g stroke="#000000" fill="none" stroke-width="1.6">
+
+    <!-- STAGE CONTAINERS -->
+    <g stroke-dasharray="7 5" stroke-width="1.3">
+      <rect x="40"   y="278" width="230" height="324"/>
+      <rect x="320"  y="278" width="210" height="324"/>
+      <rect x="580"  y="278" width="210" height="324"/>
+      <rect x="840"  y="278" width="300" height="324"/>
+      <rect x="1190" y="278" width="270" height="324"/>
+      <rect x="1510" y="278" width="170" height="324"/>
+    </g>
+
+    <!-- PIPELINE REGISTERS -->
+    <g stroke-width="2">
+      <rect x="284"  y="266" width="24" height="344" fill="#FFFFFF"/>
+      <rect x="544"  y="266" width="24" height="344" fill="#FFFFFF"/>
+      <rect x="804"  y="266" width="24" height="344" fill="#FFFFFF"/>
+      <rect x="1154" y="266" width="24" height="344" fill="#FFFFFF"/>
+      <rect x="1474" y="266" width="24" height="344" fill="#FFFFFF"/>
+    </g>
+
+    <!-- IF1 -->
+    <rect x="52"  y="300" width="202" height="62" fill="#FFFFFF" stroke-width="2.2"/>
+    <polygon points="52,400 88,420 88,500 52,520" fill="#FFFFFF"/>
+    <rect x="108" y="435" width="64" height="50" fill="#FFFFFF"/>
+    <rect x="190" y="435" width="62" height="50" fill="#FFFFFF"/>
+
+    <!-- IF2 -->
+    <rect x="332" y="300" width="186" height="62" fill="#FFFFFF"/>
+    <rect x="332" y="440" width="186" height="62" fill="#FFFFFF" stroke-width="2.2"/>
+
+    <!-- ID -->
+    <rect x="592" y="300" width="186" height="55" fill="#FFFFFF"/>
+    <rect x="592" y="380" width="186" height="65" fill="#FFFFFF"/>
+    <rect x="592" y="470" width="186" height="55" fill="#FFFFFF"/>
+
+    <!-- EX : fwd mux -> operand-select mux -> ALU on each path -->
+    <polygon points="850,322 882,338 882,378 850,394" fill="#FFFFFF"/>
+    <polygon points="900,340 932,356 932,388 900,404" fill="#FFFFFF"/>
+    <polygon points="850,410 882,426 882,466 850,482" fill="#FFFFFF"/>
+    <polygon points="900,426 932,442 932,474 900,490" fill="#FFFFFF"/>
+    <polygon points="970,350 1070,385 1070,445 970,480 970,435 995,415 970,395" fill="#FFFFFF"/>
+    <rect x="940" y="510" width="145" height="44" fill="#FFFFFF"/>
+
+    <!-- MEM -->
+    <rect x="1202" y="300" width="246" height="52" fill="#FFFFFF"/>
+    <rect x="1202" y="372" width="246" height="52" fill="#FFFFFF" stroke-width="2.2"/>
+    <rect x="1202" y="444" width="246" height="52" fill="#FFFFFF"/>
+    <rect x="1202" y="516" width="246" height="52" fill="#FFFFFF" stroke-width="2.2"/>
+
+    <!-- WB -->
+    <polygon points="1525,375 1585,400 1585,460 1525,485" fill="#FFFFFF"/>
+
+    <!-- BRANCH PREDICTOR -->
+    <rect x="330" y="118" width="300" height="100" fill="#FFFFFF"/>
+    <rect x="342" y="150" width="140" height="56" fill="#FFFFFF"/>
+    <rect x="492" y="150" width="126" height="56" fill="#FFFFFF"/>
+
+    <!-- HAZARD / FORWARDING -->
+    <rect x="580" y="660" width="190" height="55" fill="#FFFFFF"/>
+    <rect x="920" y="660" width="270" height="55" fill="#FFFFFF"/>
+
+    <!-- ===== DATAPATH WIRES ===== -->
+
+    <!-- I-Cache SRAM -> controller (bypasses IF1/IF2) -->
+    <path d="M 200 300 L 200 244 L 400 244 L 400 300" marker-end="url(#arw)"/>
+
+    <!-- IF1 internal -->
+    <path d="M 88 460 L 108 460" marker-end="url(#arw)"/>
+    <path d="M 172 460 L 190 460" marker-end="url(#arw)"/>
+    <path d="M 140 435 L 140 362" marker-end="url(#arw)"/>
+    <path d="M 140 485 L 140 545 L 284 545" marker-end="url(#arw)"/>
+    <path d="M 221 485 L 221 557 L 44 557 L 44 500 L 52 500" marker-end="url(#arw)"/>
+
+    <!-- IF1/IF2 -> IF2 -->
+    <path d="M 308 331 L 332 331" marker-end="url(#arw)"/>
+    <path d="M 308 545 L 544 545" marker-end="url(#arw)"/>
+
+    <!-- I-Cache CTRL <-> Instruction DRAM -->
+    <path d="M 415 362 L 415 440" marker-end="url(#arw)"/>
+    <path d="M 445 440 L 445 362" marker-end="url(#arw)"/>
+
+    <!-- I-Cache CTRL -> IF2/ID -->
+    <path d="M 518 331 L 544 331" marker-end="url(#arw)"/>
+
+    <!-- IF2/ID -> ID -->
+    <path d="M 568 327 L 592 327" marker-end="url(#arw)"/>
+    <path d="M 568 412 L 592 412" marker-end="url(#arw)"/>
+    <path d="M 568 497 L 592 497" marker-end="url(#arw)"/>
+
+    <!-- ID -> ID/EX -->
+    <path d="M 778 327 L 804 327" marker-end="url(#arw)"/>
+    <path d="M 778 412 L 804 412" marker-end="url(#arw)"/>
+    <path d="M 778 497 L 804 497" marker-end="url(#arw)"/>
+
+    <!-- ID/EX -> EX operand network -->
+    <path d="M 828 352 L 850 352" marker-end="url(#arw)"/>
+    <path d="M 828 402 L 900 402" marker-end="url(#arw)"/>
+    <path d="M 828 440 L 850 440" marker-end="url(#arw)"/>
+    <path d="M 828 486 L 900 486" marker-end="url(#arw)"/>
+    <path d="M 828 532 L 940 532" marker-end="url(#arw)"/>
+
+    <!-- fwd mux -> operand mux -> ALU -->
+    <path d="M 882 358 L 900 358" marker-end="url(#arw)"/>
+    <path d="M 882 446 L 900 446" marker-end="url(#arw)"/>
+    <path d="M 932 372 L 970 372" marker-end="url(#arw)"/>
+    <path d="M 932 458 L 970 458" marker-end="url(#arw)"/>
+
+    <!-- EX -> EX/MEM -->
+    <path d="M 1070 415 L 1154 415" marker-end="url(#arw)"/>
+    <path d="M 1085 532 L 1154 532" marker-end="url(#arw)"/>
+
+    <!-- EX ALU address probe -> D-Cache SRAM (un-staged) -->
+    <path d="M 1112 415 L 1112 620 L 1186 620 L 1186 398 L 1202 398" marker-end="url(#arw)" stroke-dasharray="5 4"/>
+
+    <!-- EX/MEM -> MEM -->
+    <path d="M 1178 326 L 1202 326" marker-end="url(#arw)"/>
+    <path d="M 1178 470 L 1202 470" marker-end="url(#arw)"/>
+
+    <!-- MEM internal -->
+    <path d="M 1315 424 L 1315 444" marker-end="url(#arw)"/>
+    <path d="M 1345 444 L 1345 424" marker-end="url(#arw)"/>
+    <path d="M 1315 496 L 1315 516" marker-end="url(#arw)"/>
+    <path d="M 1345 516 L 1345 496" marker-end="url(#arw)"/>
+
+    <!-- MEM -> MEM/WB -->
+    <path d="M 1448 470 L 1474 470" marker-end="url(#arw)"/>
+
+    <!-- MEM/WB -> WB MUX -->
+    <path d="M 1498 430 L 1525 430" marker-end="url(#arw)"/>
+
+    <!-- WB MUX -> Register File write port -->
+    <path d="M 1585 430 L 1625 430 L 1625 736 L 574 736 L 574 400 L 592 400" marker-end="url(#arw)"/>
+
+    <!-- ===== PREDICTOR WIRES ===== -->
+    <path d="M 296 266 L 296 168 L 330 168" marker-end="url(#arw)"/>
+    <path d="M 360 218 L 360 232 L 22 232 L 22 462 L 52 462" marker-end="url(#arw)"/>
+    <path d="M 1230 300 L 1230 58 L 8 58 L 8 425 L 52 425" marker-end="url(#arw)"/>
+    <path d="M 1370 300 L 1370 92 L 660 92 L 660 168 L 630 168" marker-end="url(#arw)"/>
+
+    <!-- ===== HAZARD / FORWARDING WIRES ===== -->
+    <g stroke-dasharray="5 4">
+      <path d="M 816 610 L 816 687 L 770 687" marker-end="url(#arwS)"/>
+      <path d="M 580 687 L 160 687 L 160 485" marker-end="url(#arwS)"/>
+      <path d="M 1166 610 L 1166 660" marker-end="url(#arwS)"/>
+      <path d="M 1486 610 L 1486 692 L 1190 692" marker-end="url(#arwS)"/>
+      <path d="M 940 660 L 940 626 L 832 626 L 832 384 L 850 384" marker-end="url(#arwS)"/>
+      <path d="M 980 660 L 980 616 L 838 616 L 838 470 L 850 470" marker-end="url(#arwS)"/>
+      <path d="M 920 668 L 800 668 L 800 636 L 585 636 L 585 430 L 592 430" marker-end="url(#arwS)"/>
+    </g>
+
+    <circle cx="1112" cy="415" r="3.5" fill="#000000" stroke="none"/>
+
+  </g>
+
+  <!-- ===== TEXT ===== -->
+  <g fill="#000000" text-anchor="middle">
+
+    <g font-size="16" font-weight="bold" letter-spacing="1">
+      <text x="155"  y="268">IF1</text>
+      <text x="425"  y="268">IF2</text>
+      <text x="685"  y="268">ID</text>
+      <text x="990"  y="268">EX</text>
+      <text x="1325" y="268">MEM</text>
+      <text x="1595" y="268">WB</text>
+    </g>
+
+    <g font-size="11" font-weight="bold">
+      <text transform="translate(300,438) rotate(-90)">IF1 / IF2</text>
+      <text transform="translate(560,438) rotate(-90)">IF2 / ID</text>
+      <text transform="translate(820,438) rotate(-90)">ID / EX</text>
+      <text transform="translate(1170,438) rotate(-90)">EX / MEM</text>
+      <text transform="translate(1490,438) rotate(-90)">MEM / WB</text>
+    </g>
+
+    <!-- IF1 -->
+    <text x="153" y="325" font-size="13" font-weight="bold">I-Cache SRAM</text>
+    <text x="153" y="344" font-size="10">1 KB &#183; direct-mapped &#183; 32 B block</text>
+    <text transform="translate(69,460) rotate(-90)" font-size="12" font-weight="bold">MUX</text>
+    <text x="140" y="466" font-size="14" font-weight="bold">PC</text>
+    <text x="221" y="466" font-size="14" font-weight="bold">+4</text>
+
+    <!-- IF2 -->
+    <text x="425" y="326" font-size="13" font-weight="bold">I-Cache Controller</text>
+    <text x="425" y="345" font-size="10">tag compare &#183; hit/miss &#183; refill FSM</text>
+    <text x="425" y="466" font-size="13" font-weight="bold">Instruction Memory</text>
+    <text x="425" y="485" font-size="10">8 KB DRAM</text>
+
+    <!-- ID -->
+    <text x="685" y="333" font-size="13" font-weight="bold">Control Unit</text>
+    <text x="685" y="408" font-size="13" font-weight="bold">Register File</text>
+    <text x="685" y="426" font-size="10">32 &#215; 32-bit</text>
+    <text x="685" y="503" font-size="13" font-weight="bold">Imm Gen</text>
+
+    <!-- EX -->
+    <text transform="translate(869,358) rotate(-90)" font-size="9" font-weight="bold">FWD</text>
+    <text transform="translate(869,446) rotate(-90)" font-size="9" font-weight="bold">FWD</text>
+    <text transform="translate(919,372) rotate(-90)" font-size="9" font-weight="bold">MUX A</text>
+    <text transform="translate(919,458) rotate(-90)" font-size="9" font-weight="bold">MUX B</text>
+    <text x="1030" y="421" font-size="15" font-weight="bold">ALU</text>
+    <text x="1012" y="538" font-size="12" font-weight="bold">PC + Imm Adder</text>
+
+    <!-- MEM -->
+    <text x="1325" y="322" font-size="13" font-weight="bold">Branch Resolve</text>
+    <text x="1325" y="340" font-size="10">mispredict &#183; redirect PC &#183; predictor update</text>
+    <text x="1325" y="394" font-size="13" font-weight="bold">D-Cache SRAM</text>
+    <text x="1325" y="412" font-size="10">1 KB &#183; direct-mapped &#183; 32 B block</text>
+    <text x="1325" y="466" font-size="13" font-weight="bold">D-Cache Controller</text>
+    <text x="1325" y="484" font-size="10">write-back &#183; write-allocate &#183; evict FSM</text>
+    <text x="1325" y="538" font-size="13" font-weight="bold">Data Memory</text>
+    <text x="1325" y="556" font-size="10">8 KB DRAM</text>
+
+    <!-- WB -->
+    <text x="1557" y="425" font-size="9.5" font-weight="bold">Write-Back</text>
+    <text x="1557" y="444" font-size="14" font-weight="bold">MUX</text>
+
+    <!-- Branch predictor -->
+    <text x="480" y="141" font-size="14" font-weight="bold">Branch Predictor</text>
+    <text x="412" y="174" font-size="12" font-weight="bold">Gshare</text>
+    <text x="412" y="192" font-size="10">GHR 10 b &#183; PHT 1024 &#215; 2 b</text>
+    <text x="555" y="174" font-size="12" font-weight="bold">BTB</text>
+    <text x="555" y="192" font-size="10">32 entries &#183; tagged</text>
+
+    <!-- Hazard / forwarding -->
+    <text x="675" y="684" font-size="13" font-weight="bold">Hazard Unit</text>
+    <text x="675" y="702" font-size="10">load-use detect</text>
+    <text x="1055" y="684" font-size="13" font-weight="bold">Forwarding Unit</text>
+    <text x="1055" y="702" font-size="10">4 bypass paths</text>
+
+  </g>
+
+  <g fill="#000000" stroke="#FFFFFF" stroke-width="3.4" paint-order="stroke" font-size="10" font-style="italic">
+    <text x="208" y="236">cache line</text>
+    <text x="304" y="50">mispredict / redirect PC  &#183;  flush</text>
+    <text x="672" y="84">predictor update  (PHT &#183; GHR &#183; BTB)</text>
+    <text x="32" y="224">predict taken / target</text>
+    <text x="318" y="538">PC &#183; PC+4</text>
+    <text x="1106" y="578" text-anchor="end">EX address probe</text>
+    <text x="1634" y="516">write-back data</text>
+    <text x="172" y="680">stall &#183; bubble</text>
+    <text x="770" y="612">forward</text>
+    <text x="858" y="398" font-size="8.5">PC</text>
+    <text x="856" y="482" font-size="8.5">Imm</text>
+  </g>
+
+</svg>

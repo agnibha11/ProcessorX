@@ -1,0 +1,199 @@
+# ============================================================
+# icache_dcache_exercise.s  --  RV32IM
+# Exercises BOTH the L1 instruction cache and the L1 data cache.
+#
+# I-cache stress: a long straight-line run (cold I-misses), several
+#   backward loops (re-fetch cached lines -> I-hits), and forward jumps
+#   crossing 32-byte instruction blocks (fresh I-misses).
+# D-cache stress: store/sum loops over arrays (spatial locality, block-
+#   boundary misses), a same-index conflict pair forcing dirty evictions
+#   / write-backs, and sub-word (byte/half) accesses.
+#
+# Geometry (both caches): 1 KB, 32-byte blocks, 32 lines, direct-mapped.
+#   addr: [12:10] tag | [9:5] index | [4:2] word | [1:0] byte
+#
+# Data map:
+#   ARR  = 0x200  (index 16) : 32-word working array (4 blocks)
+#   BASE = 0x000  (index 0)  : scratch region
+#   A    = 0x040  (index 2, tag 0)  \ same-index conflict pair
+#   B    = 0x440  (index 2, tag 1)  / -> dirty eviction / write-back
+#   Dsub = 0x100  (index 8)  : sub-word playground
+#
+# A memory-readback epilogue at the end mirrors final memory state into
+# x24..x31 so you can infer memory correctness from the register dump.
+# ============================================================
+
+# ---------------- init ----------------
+        addi  x1,  x0, 0
+        addi  x2,  x0, 0
+        addi  x13, x0, 0x000        # BASE
+        addi  x14, x0, 0x200        # ARR
+        addi  x10, x0, 0x040        # A (index 2, tag 0)
+        addi  x11, x0, 0x440        # B (index 2, tag 1)
+        addi  x15, x0, 0x100        # Dsub (index 8)
+        addi  x9,  x0, 3            # a constant divisor / stride
+
+# ---------------- long straight-line run (cold I-misses + I-hits) ----------------
+        addi  x5,  x0, 1
+        addi  x6,  x0, 2
+        addi  x7,  x0, 4
+        add   x16, x5,  x6
+        add   x17, x6,  x7
+        mul   x18, x16, x17
+        mulh  x19, x16, x17
+        sub   x20, x17, x16
+        xor   x21, x18, x20
+        or    x22, x18, x20
+        and   x23, x18, x20
+        sll   x24, x16, x9
+        srl   x25, x17, x9
+        sra   x26, x18, x9
+        slt   x27, x16, x17
+        sltu  x28, x16, x17
+        div   x29, x18, x9
+        rem   x30, x18, x9
+        addi  x5,  x5,  7
+        addi  x6,  x6,  9
+        add   x7,  x7,  x5
+        sub   x7,  x7,  x6
+        slli  x7,  x7,  1
+        srai  x7,  x7,  1
+        xor   x7,  x7,  x9
+
+# ---------------- store loop: init ARR[i] = i*i (D writes) ----------------
+        addi  x5,  x0, 0            # i
+        addi  x18, x0, 32           # 32 words (4 blocks)
+init_loop:
+        slli  x6, x5, 2
+        add   x7, x14, x6           # &ARR[i]
+        mul   x8, x5, x5            # i*i
+        sw    x8, 0(x7)             # D store: MISS at block starts, HIT within
+        addi  x5, x5, 1
+        blt   x5, x18, init_loop    # backward -> I-hits, D mix
+
+# ---------------- nested loops: sum ARR repeatedly (I-hits heavy, D-hits) ----------------
+        addi  x8,  x0, 0            # total
+        addi  x5,  x0, 0            # outer counter
+        addi  x12, x0, 4            # outer bound
+outer_loop:
+        addi  x6,  x0, 0            # j
+        addi  x19, x0, 0            # row sum
+inner_loop:
+        slli  x20, x6, 2
+        add   x21, x14, x20
+        lw    x22, 0(x21)           # D load: HITs after first pass
+        add   x19, x19, x22
+        addi  x6,  x6, 1
+        blt   x6, x18, inner_loop   # inner backward -> tight I-hit loop
+        add   x8,  x8, x19
+        addi  x5,  x5, 1
+        blt   x5, x12, outer_loop   # outer backward
+
+# ---------------- dirty eviction / write-back correctness ----------------
+        addi  x5, x0, 0xAA
+        sw    x5, 0(x10)            # A: MISS(clean) allocate, dirty
+        addi  x6, x0, 0xBB
+        sw    x6, 0(x11)            # B: MISS(dirty-evict A) allocate, dirty
+        lw    x23, 0(x10)           # A: MISS(dirty-evict B) refill -> 0xAA  (write-back proof)
+        lw    x24, 0(x11)           # B: MISS(dirty-evict A) refill -> 0xBB
+        addi  x5, x0, 0x5A
+        sw    x5, 4(x10)            # A: MISS(dirty-evict B) allocate, write word1
+        lw    x25, 4(x10)           # A: HIT -> 0x5A
+
+# ---------------- forward jump across I-cache blocks (fresh I-miss) ----------------
+        jal   x0, far_target
+
+# ---- filler block: jumped over on the straight path (distinct I-line) ----
+buried_c:
+        addi  x1, x0, 0x101
+        addi  x1, x1, 0x102
+        addi  x1, x1, 0x103
+        addi  x1, x1, 0x104
+        addi  x1, x1, 0x105
+        addi  x1, x1, 0x106
+        jal   x0, after_far
+
+far_target:
+        addi  x26, x0, 0x77         # landing pad (new I-block -> I-miss)
+        add   x8,  x8, x26
+        addi  x27, x0, 1
+        blt   x0,  x27, after_far   # taken -> skip buried_c permanently
+
+after_far:
+# ---------------- sub-word stores/loads (D hits, merge + extract) ----------------
+        addi  x5, x0, 0xAB
+        sb    x5, 8(x15)           # store byte @ Dsub+8   (word2 byte0)
+        addi  x6, x0, 0xCD
+        sb    x6, 9(x15)           # @ Dsub+9
+        addi  x7, x0, 0x12
+        sb    x7, 10(x15)          # @ Dsub+10
+        addi  x8, x0, 0x34
+        sb    x8, 11(x15)          # @ Dsub+11  -> word = 0x3412CDAB
+        lw    x28, 8(x15)          # -> 0x3412CDAB
+        lbu   x29, 8(x15)          # -> 0x000000AB
+        lb    x30, 8(x15)          # -> 0xFFFFFFAB
+        lhu   x31, 10(x15)         # -> 0x00003412
+        addi  x5, x0, 0x50
+        slli  x5, x5, 8
+        ori   x5, x5, 0x0C         # x5 = 0x0000500C
+        sh    x5, 12(x15)          # store halfword @ Dsub+12
+        lhu   x20, 12(x15)         # -> 0x0000500C
+
+# ---------------- countdown loop with a store each iteration ----------------
+        addi  x5, x0, 12           # counter
+cd_loop:
+        addi  x5, x5, -1
+        slli  x6, x5, 2
+        add   x7, x13, x6          # &BASE[i]  (index 0 region)
+        addi  x8, x5, 0x30         # value = 0x30 + i
+        sw    x8, 0(x7)            # D store into BASE region
+        bne   x5, x0, cd_loop      # backward -> I-hit loop
+
+# ============================================================
+# MEMORY-READBACK EPILOGUE
+# Pull final memory state into registers. DRAM-PROOF entries are read
+# from lines that were evicted, so a correct value proves write-back.
+#
+#   x24 = A[0]   x25 = B[0]        (index-2 survivors, DRAM-PROOF)
+#   x26 = A[1]   (0x5A)
+#   x27 = ARR sum (recomputed)     x28 = ARR[31]
+#   x29 = Dsub[word2] (0x3412CDAB) x30 = BASE[0]   x31 = BASE[11]
+# ============================================================
+
+# flush index 2 (A,B dirty) by touching two other tags of index 2 so
+# the A/B readbacks are forced to refill from DRAM.
+        lui   x16, 0x1              # index 2, tag 3 scratch (0xC40 = 3136)
+        addi  x16, x16, -960       # 4096 - 960 = 3136
+        lui   x17, 0x1
+        addi  x17, x17, 0x040       # 0x1040 index 2, tag 4 (scratch)
+        sw    x0, 0(x16)            # MISS(dirty-evict) : writes a survivor to DRAM
+        sw    x0, 0(x17)            # MISS(dirty-evict) : writes another to DRAM
+
+        lw    x24, 0(x10)           # A[0] : MISS -> DRAM refill (DRAM-PROOF) = 0xAA
+        lw    x25, 0(x11)           # B[0] : MISS(dirty-evict) -> DRAM        = 0xBB
+        lw    x26, 4(x10)           # A[1] : refill -> 0x5A
+
+# recompute ARR sum from memory
+        addi  x5,  x0, 0
+        addi  x18, x0, 32
+        addi  x27, x0, 0
+epi_arr_sum:
+        slli  x6, x5, 2
+        add   x7, x14, x6
+        lw    x9, 0(x7)
+        add   x27, x27, x9
+        addi  x5, x5, 1
+        blt   x5, x18, epi_arr_sum
+        lw    x28, 124(x14)         # ARR[31] -> 31*31 = 961 = 0x3C1
+
+# sub-word merged word
+        lw    x29, 8(x15)           # -> 0x3412CDAB
+
+# BASE region readback
+        lw    x30, 0(x13)           # BASE[0]  -> 0x30 + 0
+        lw    x31, 44(x13)          # BASE[11] -> 0x30 + 11 = 0x3B
+
+# ===== truly done =====
+        addi  x2, x0, 2             # marker: reached readback epilogue
+end_c_final:
+        beq   x0, x0, end_c_final   # spin forever

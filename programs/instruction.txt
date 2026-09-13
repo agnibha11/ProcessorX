@@ -1,0 +1,63 @@
+addi x1,x0,10
+addi x2,x0,20
+addi x3,x0,-1
+lui  x4,0x12345
+addi x4,x4,0x678
+add x5,x1,x2
+sub x6,x5,x1
+and x7,x6,x5
+or  x8,x7,x3
+xor x9,x8,x6
+sll x10,x1,x1
+srl x11,x10,x1
+sra x12,x3,x1
+andi x13,x3,15
+ori x14,x1,16
+xori x15,x14,31
+slti x16,x1,100
+sltiu x17,x3,100
+slli x18,x1,2
+srli x19,x18,1
+srai x20,x3,2
+slt x21,x1,x2
+sltu x22,x3,x1
+addi x23,x0,256
+sw x4,0(x23)
+lw x24,0(x23)
+add x25,x24,x1
+sb x1,4(x23)
+lb x26,4(x23)
+sb x3,5(x23)
+lbu x27,5(x23)
+sh x4,8(x23)
+lh x28,8(x23)
+lhu x29,8(x23)
+add x5,x1,x2
+sw x5,12(x23)
+lw x6,12(x23)
+add x7,x6,x1
+lw x8,0(x23)
+add x9,x8,x1
+beq x1,x2,L1
+addi x30,x0,111
+L1:
+bne x1,x2,L2
+addi x30,x0,222
+L2:
+blt x1,x2,L3
+addi x30,x0,333
+L3:
+bge x2,x1,L4
+addi x30,x0,444
+L4:
+bltu x1,x2,L5
+addi x30,x0,555
+L5:
+bgeu x3,x1,L6
+addi x30,x0,666
+L6:
+jal x31,L7
+addi x5,x0,999
+L7:
+auipc x10,0
+jalr x11,0(x10)
