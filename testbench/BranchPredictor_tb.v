@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 //====================================================
-// Project     : RV32IM 5 Stage Pipelined Processor
+// Project     : RV32IM 6-Stage Pipelined Processor
 // Testbench    : branch_predictor_tb   (tests gshare + btb together)
 //
 // A reference model mirrors ALL predictor state:

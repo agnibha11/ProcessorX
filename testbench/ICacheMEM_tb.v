@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 //====================================================
-// Project     : RV32IM 5 Stage Pipelined Processor
+// Project     : RV32IM 6-Stage Pipelined Processor
 // Testbench    : icache_mem_tb
 //
 // Self-checking TB for the L1 instruction-cache SRAM.
