@@ -60,13 +60,13 @@ module FloatMul (
     assign p_exp_Elt1 = (($signed(p_exp) + $signed({5'b0, rs_amt})) == 10'd1) ? 10'd0 : ($signed(p_exp) + $signed({5'b0, rs_amt}));
 
     // calculating resultant P and E for if E >= 1 : potential NORMAL / SUBNORMAL
-    wire [ 4:0] ls_amt;
+    wire [ 9:0] ls_amt;
     wire [47:0] prod_Egt1_tmp, prod_Egt1;
     wire [ 9:0] p_exp_Egt1_tmp, p_exp_Egt1;
 
-    assign ls_amt = ($signed({4'b0, lz}) < ($signed(p_exp) - $signed(10'd2))) ? {4'b0, lz} : ($signed(p_exp) - $signed(10'd2));
+    assign ls_amt = ($signed({4'b0, lz[5:0]}) < ($signed(p_exp) - $signed(10'd2))) ? {4'b0, lz[5:0]} : ($signed(p_exp) - $signed(10'd2));
     assign prod_Egt1_tmp = prod << ls_amt;
-    assign p_exp_Egt1_tmp = p_exp - {5'b0, ls_amt};
+    assign p_exp_Egt1_tmp = p_exp - ls_amt;
 
     assign prod_Egt1 = prod_Egt1_tmp << 1;
     assign p_exp_Egt1 = prod_Egt1_tmp[47] ? p_exp_Egt1_tmp - 10'd1 : 10'd0;
